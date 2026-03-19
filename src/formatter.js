@@ -28,8 +28,62 @@ function formatReport(phoneInfo, waData, dorks) {
   lines.push(`Valid: ${phoneInfo.valid ? 'Yes' : 'No'}`);
   lines.push('');
 
-  // --- wa.me Discovery (no auth needed) ---
-  if (waData.waProbe) {
+  // --- Endpoint Discovery (no auth needed) ---
+  if (waData.endpointProbes) {
+    const ep = waData.endpointProbes;
+    lines.push('*--- ENDPOINT DISCOVERY (no auth) ---*');
+
+    if (ep.summary) {
+      const s = ep.summary;
+      const confLabel = s.confidence ? s.confidence.toUpperCase() : 'UNKNOWN';
+      lines.push(`Confidence: ${confLabel}`);
+      if (s.displayName) {
+        lines.push(`Display Name: ${s.displayName}`);
+      }
+      const regLabel = s.registered === true
+        ? 'YES'
+        : s.registered === false ? 'NO (invalid)' : 'Inconclusive';
+      lines.push(`Registration: ${regLabel}`);
+      if (s.isBusiness) {
+        lines.push(`Business Account: YES${s.businessName ? ` (${s.businessName})` : ''}`);
+      }
+      if (s.waMeLink) {
+        lines.push(`wa.me Link: ${s.waMeLink}`);
+      }
+      if (s.signals && s.signals.length > 0) {
+        lines.push('Signals:');
+        s.signals.forEach((sig) => lines.push(`  - ${sig}`));
+      }
+    }
+
+    // Individual probe details
+    if (ep.probes) {
+      const probeList = [
+        { key: 'waMe', label: 'wa.me' },
+        { key: 'apiWhatsApp', label: 'api.whatsapp.com' },
+        { key: 'businessCatalog', label: 'wa.me/c (catalog)' },
+      ];
+      for (const p of probeList) {
+        const probe = ep.probes[p.key];
+        if (!probe || probe.error) continue;
+        if (probe.displayName) {
+          lines.push(`  ${p.label} name: ${probe.displayName}`);
+        }
+        if (probe.ogMeta && probe.ogMeta.ogTitle) {
+          lines.push(`  ${p.label} OG title: ${probe.ogMeta.ogTitle}`);
+        }
+        if (probe.ogMeta && probe.ogMeta.ogDescription) {
+          lines.push(`  ${p.label} OG desc: ${probe.ogMeta.ogDescription}`);
+        }
+      }
+    }
+
+    if (ep.probeTimeMs) {
+      lines.push(`Probe time: ${ep.probeTimeMs}ms`);
+    }
+    lines.push('');
+  } else if (waData.waProbe) {
+    // Legacy single-probe format
     lines.push('*--- WA.ME DISCOVERY (no auth) ---*');
     const probe = waData.waProbe;
     if (probe.displayName) {
@@ -82,6 +136,27 @@ function formatReport(phoneInfo, waData, dorks) {
       lines.push('Enterprise Account: YES');
     }
     lines.push(`In Your Contacts: ${waData.isMyContact ? 'Yes' : 'No'}`);
+
+    // Number type
+    if (waData.numberType) {
+      lines.push(`Number Type: ${waData.numberType}`);
+    }
+
+    // Privacy settings inference
+    if (waData.privacySettings) {
+      const ps = waData.privacySettings;
+      const hasPrivacyData = ps.profilePic !== 'unknown' || ps.about !== 'unknown';
+      if (hasPrivacyData) {
+        lines.push('');
+        lines.push('*--- PRIVACY SETTINGS (inferred) ---*');
+        if (ps.profilePic !== 'unknown') {
+          lines.push(`  Profile Picture: ${ps.profilePic}`);
+        }
+        if (ps.about !== 'unknown') {
+          lines.push(`  About/Status: ${ps.about}`);
+        }
+      }
+    }
 
     // Business profile details
     if (waData.businessProfile) {

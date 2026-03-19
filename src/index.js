@@ -6,7 +6,7 @@ const { parsePhoneNumber, toWhatsAppId } = require('./phoneInfo');
 const { lookupWhatsApp, batchCheckRegistration } = require('./whatsappLookup');
 const { generateDorks } = require('./webSearch');
 const { formatReport } = require('./formatter');
-const { probeWaMe, getWaMeLink } = require('./waProbe');
+const { probeAllEndpoints, getWaMeLink } = require('./waEndpoints');
 
 const HELP_TEXT = `*Als OSINT Bot* - WhatsApp Phone Number Intelligence
 
@@ -141,14 +141,14 @@ async function handleMessage(client, message) {
 async function fullLookup(client, message, phoneInfo) {
   const waId = toWhatsAppId(phoneInfo.number);
 
-  // Run wa.me probe (no auth needed) in parallel with WhatsApp API lookup
-  const [waData, waProbeResult] = await Promise.all([
+  // Run all endpoint probes (no auth) in parallel with WhatsApp API lookup (auth)
+  const [waData, endpointProbes] = await Promise.all([
     lookupWhatsApp(client, waId),
-    probeWaMe(phoneInfo.number).catch(() => null),
+    probeAllEndpoints(phoneInfo.number).catch(() => null),
   ]);
 
-  if (waProbeResult) {
-    waData.waProbe = waProbeResult;
+  if (endpointProbes) {
+    waData.endpointProbes = endpointProbes;
   }
   waData.waMeLink = getWaMeLink(phoneInfo.number);
 
@@ -162,13 +162,13 @@ async function fullLookup(client, message, phoneInfo) {
 async function whatsappOnlyLookup(client, message, phoneInfo) {
   const waId = toWhatsAppId(phoneInfo.number);
 
-  const [waData, waProbeResult] = await Promise.all([
+  const [waData, endpointProbes] = await Promise.all([
     lookupWhatsApp(client, waId),
-    probeWaMe(phoneInfo.number).catch(() => null),
+    probeAllEndpoints(phoneInfo.number).catch(() => null),
   ]);
 
-  if (waProbeResult) {
-    waData.waProbe = waProbeResult;
+  if (endpointProbes) {
+    waData.endpointProbes = endpointProbes;
   }
   waData.waMeLink = getWaMeLink(phoneInfo.number);
 
@@ -178,11 +178,11 @@ async function whatsappOnlyLookup(client, message, phoneInfo) {
 }
 
 async function linksOnlyLookup(message, phoneInfo) {
-  // Run wa.me probe even for links-only (no QR auth needed)
-  const waProbeResult = await probeWaMe(phoneInfo.number).catch(() => null);
+  // Run all endpoint probes (no QR auth needed)
+  const endpointProbes = await probeAllEndpoints(phoneInfo.number).catch(() => null);
   const waPlaceholder = { registered: false };
-  if (waProbeResult) {
-    waPlaceholder.waProbe = waProbeResult;
+  if (endpointProbes) {
+    waPlaceholder.endpointProbes = endpointProbes;
   }
   waPlaceholder.waMeLink = getWaMeLink(phoneInfo.number);
 

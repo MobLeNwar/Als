@@ -4,6 +4,17 @@
  * Perform deep WhatsApp OSINT lookup using whatsapp-web.js client API.
  * Extracts maximum information available from WhatsApp's discovery system.
  *
+ * When authenticated (QR code scanned), this module can access:
+ *   - Registration status
+ *   - Push name (display name set by the user)
+ *   - About / status text
+ *   - Profile picture URL (hosted on pps.whatsapp.net CDN)
+ *   - Business profile (description, email, website, address, category, hours)
+ *   - Common groups (social graph intelligence)
+ *   - Verified business name and level
+ *   - Country code and formatted number
+ *   - Privacy settings inference (based on what data is/isn't accessible)
+ *
  * @param {import('whatsapp-web.js').Client} client - Authenticated WWeb client
  * @param {string} waId - WhatsApp ID (e.g. 1234567890@c.us)
  * @returns {Promise<object>} WhatsApp profile data
@@ -24,6 +35,12 @@ async function lookupWhatsApp(client, waId) {
     businessProfile: null,
     countryCode: null,
     formattedNumber: null,
+    privacySettings: {
+      profilePic: 'unknown',
+      about: 'unknown',
+    },
+    numberType: null,
+    labels: [],
   };
 
   try {
@@ -45,6 +62,13 @@ async function lookupWhatsApp(client, waId) {
     result.verifiedName = contact.verifiedName || null;
     result.verifiedLevel = contact.verifiedLevel || null;
 
+    // Determine number type from contact metadata
+    if (contact.isBusiness) {
+      result.numberType = contact.isEnterprise ? 'enterprise' : 'business';
+    } else {
+      result.numberType = 'personal';
+    }
+
     // Country code
     try {
       const cc = await contact.getCountryCode();
@@ -61,20 +85,34 @@ async function lookupWhatsApp(client, waId) {
       result.formattedNumber = null;
     }
 
-    // About/status text
+    // About/status text + privacy inference
     try {
       const about = await contact.getAbout();
-      result.about = about || null;
+      if (about) {
+        result.about = about;
+        result.privacySettings.about = 'visible';
+      } else {
+        result.about = null;
+        result.privacySettings.about = 'hidden_or_unset';
+      }
     } catch (_e) {
       result.about = null;
+      result.privacySettings.about = 'restricted';
     }
 
-    // Profile picture URL
+    // Profile picture URL + privacy inference
     try {
       const picUrl = await contact.getProfilePicUrl();
-      result.profilePicUrl = picUrl || null;
+      if (picUrl) {
+        result.profilePicUrl = picUrl;
+        result.privacySettings.profilePic = 'visible';
+      } else {
+        result.profilePicUrl = null;
+        result.privacySettings.profilePic = 'hidden_or_unset';
+      }
     } catch (_e) {
       result.profilePicUrl = null;
+      result.privacySettings.profilePic = 'restricted';
     }
 
     // Common groups (reveals social connections)
@@ -89,13 +127,34 @@ async function lookupWhatsApp(client, waId) {
       result.commonGroups = [];
     }
 
-    // Business profile details
+    // Business profile details (deep extraction)
     if (contact.isBusiness) {
       try {
-        result.businessProfile = contact.businessProfile || null;
+        const bp = contact.businessProfile || null;
+        if (bp) {
+          result.businessProfile = {
+            description: bp.description || null,
+            email: bp.email || null,
+            website: bp.website || null,
+            address: bp.address || null,
+            category: bp.category || null,
+            businessHours: bp.businessHours || null,
+            latitude: bp.latitude || null,
+            longitude: bp.longitude || null,
+          };
+        }
       } catch (_e) {
         result.businessProfile = null;
       }
+    }
+
+    // Try to get labels (if available)
+    try {
+      if (contact.labels && contact.labels.length > 0) {
+        result.labels = contact.labels;
+      }
+    } catch (_e) {
+      result.labels = [];
     }
 
   } catch (err) {

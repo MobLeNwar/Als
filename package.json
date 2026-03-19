@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "lint": "eslint src/",
-    "test": "node --test src/__tests__/phoneInfo.test.js src/__tests__/webSearch.test.js src/__tests__/formatter.test.js"
+    "test": "node --test src/__tests__/phoneInfo.test.js src/__tests__/webSearch.test.js src/__tests__/formatter.test.js src/__tests__/waEndpoints.test.js"
   },
   "keywords": [
     "whatsapp",
