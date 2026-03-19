@@ -1,0 +1,29 @@
+{
+  "name": "whatsapp-number-osint",
+  "version": "1.0.0",
+  "description": "WhatsApp OSINT tool - lookup phone numbers via WhatsApp discovery and web search enrichment",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "lint": "eslint src/",
+    "test": "node --test src/__tests__/phoneInfo.test.js src/__tests__/webSearch.test.js src/__tests__/formatter.test.js src/__tests__/waEndpoints.test.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "osint",
+    "phone-lookup",
+    "intelligence"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "libphonenumber-js": "^1.11.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.1-alpha.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
