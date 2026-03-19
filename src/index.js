@@ -6,6 +6,7 @@ const { parsePhoneNumber, toWhatsAppId } = require('./phoneInfo');
 const { lookupWhatsApp, batchCheckRegistration } = require('./whatsappLookup');
 const { generateDorks } = require('./webSearch');
 const { formatReport } = require('./formatter');
+const { probeWaMe, getWaMeLink } = require('./waProbe');
 
 const HELP_TEXT = `*Als OSINT Bot* - WhatsApp Phone Number Intelligence
 
@@ -139,8 +140,20 @@ async function handleMessage(client, message) {
 
 async function fullLookup(client, message, phoneInfo) {
   const waId = toWhatsAppId(phoneInfo.number);
-  const waData = await lookupWhatsApp(client, waId);
-  const dorks = generateDorks(phoneInfo.international);
+
+  // Run wa.me probe (no auth needed) in parallel with WhatsApp API lookup
+  const [waData, waProbeResult] = await Promise.all([
+    lookupWhatsApp(client, waId),
+    probeWaMe(phoneInfo.number).catch(() => null),
+  ]);
+
+  if (waProbeResult) {
+    waData.waProbe = waProbeResult;
+  }
+  waData.waMeLink = getWaMeLink(phoneInfo.number);
+
+  const dorkOptions = { countryCode: phoneInfo.country, nationalNumber: phoneInfo.nationalNumber };
+  const dorks = generateDorks(phoneInfo.international, dorkOptions);
   const report = formatReport(phoneInfo, waData, dorks);
 
   await message.reply(report);
@@ -148,15 +161,33 @@ async function fullLookup(client, message, phoneInfo) {
 
 async function whatsappOnlyLookup(client, message, phoneInfo) {
   const waId = toWhatsAppId(phoneInfo.number);
-  const waData = await lookupWhatsApp(client, waId);
+
+  const [waData, waProbeResult] = await Promise.all([
+    lookupWhatsApp(client, waId),
+    probeWaMe(phoneInfo.number).catch(() => null),
+  ]);
+
+  if (waProbeResult) {
+    waData.waProbe = waProbeResult;
+  }
+  waData.waMeLink = getWaMeLink(phoneInfo.number);
+
   const report = formatReport(phoneInfo, waData, []);
 
   await message.reply(report);
 }
 
 async function linksOnlyLookup(message, phoneInfo) {
+  // Run wa.me probe even for links-only (no QR auth needed)
+  const waProbeResult = await probeWaMe(phoneInfo.number).catch(() => null);
   const waPlaceholder = { registered: false };
-  const dorks = generateDorks(phoneInfo.international);
+  if (waProbeResult) {
+    waPlaceholder.waProbe = waProbeResult;
+  }
+  waPlaceholder.waMeLink = getWaMeLink(phoneInfo.number);
+
+  const dorkOptions = { countryCode: phoneInfo.country, nationalNumber: phoneInfo.nationalNumber };
+  const dorks = generateDorks(phoneInfo.international, dorkOptions);
   const report = formatReport(phoneInfo, waPlaceholder, dorks);
 
   await message.reply(report);
@@ -183,6 +214,7 @@ async function handleBatch(client, message, input) {
 
   const waIds = [];
   const numberMap = {};
+  const invalidNumbers = [];
 
   for (const raw of rawNumbers) {
     const info = parsePhoneNumber(raw);
@@ -191,7 +223,7 @@ async function handleBatch(client, message, input) {
       waIds.push(waId);
       numberMap[waId] = info.international;
     } else {
-      numberMap[raw] = raw;
+      invalidNumbers.push(raw);
     }
   }
 
@@ -203,6 +235,14 @@ async function handleBatch(client, message, input) {
     const status = r.registered ? 'ON WhatsApp' : 'NOT on WhatsApp';
     const icon = r.registered ? '[+]' : '[-]';
     lines.push(`${icon} ${display}: ${status}`);
+  }
+
+  if (invalidNumbers.length > 0) {
+    lines.push('');
+    lines.push('*Skipped (invalid format):*');
+    for (const inv of invalidNumbers) {
+      lines.push(`  [!] ${inv}`);
+    }
   }
 
   await message.reply(lines.join('\n'));

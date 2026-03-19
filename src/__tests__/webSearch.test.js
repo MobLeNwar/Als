@@ -31,8 +31,22 @@ describe('generateDorks', () => {
     assert.ok(generalSearch.url.includes('447911123456'));
   });
 
+  it('should use %22 instead of literal quotes in URLs', () => {
+    const dorks = generateDorks('+1 202 555 1234');
+    dorks.forEach((d) => {
+      assert.ok(!d.url.includes('"'), `Dork "${d.name}" should not have literal quotes in URL`);
+    });
+  });
+
+  it('should use ISO country code for Truecaller URL when provided', () => {
+    const dorks = generateDorks('+1 202 555 1234', { countryCode: 'US', nationalNumber: '2025551234' });
+    const tc = dorks.find((d) => d.name === 'Truecaller');
+    assert.ok(tc.url.includes('/search/us/'), 'Truecaller URL should use lowercase ISO country code');
+    assert.ok(tc.url.includes('2025551234'), 'Truecaller URL should include national number');
+  });
+
   it('should have dorks across multiple categories', () => {
-    const dorks = generateDorks('+1234567890');
+    const dorks = generateDorks('+1234567890', {});
     const categories = new Set(dorks.map((d) => d.category));
     assert.ok(categories.has('general'));
     assert.ok(categories.has('social'));

@@ -28,6 +28,21 @@ function formatReport(phoneInfo, waData, dorks) {
   lines.push(`Valid: ${phoneInfo.valid ? 'Yes' : 'No'}`);
   lines.push('');
 
+  // --- wa.me Discovery (no auth needed) ---
+  if (waData.waProbe) {
+    lines.push('*--- WA.ME DISCOVERY (no auth) ---*');
+    const probe = waData.waProbe;
+    if (probe.displayName) {
+      lines.push(`Display Name (wa.me): ${probe.displayName}`);
+    }
+    const regLabel = probe.registered === true
+      ? 'YES (name found)'
+      : probe.registered === false ? 'NO (invalid number)' : 'Inconclusive';
+    lines.push(`wa.me Registration Signal: ${regLabel}`);
+    lines.push(`wa.me Link: ${probe.url}`);
+    lines.push('');
+  }
+
   // --- WhatsApp Discovery (core intelligence) ---
   lines.push('*--- WHATSAPP DISCOVERY ---*');
   lines.push(`Registered on WhatsApp: ${waData.registered ? 'YES' : 'NO'}`);
