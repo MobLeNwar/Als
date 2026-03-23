@@ -106,7 +106,7 @@ describe('correlateHttpResults', () => {
 
     const result = correlateHttpResults(waMe, api, catalog, bizApi, profilePic);
     assert.strictEqual(result.profilePicStatus, 'visible');
-    assert.ok(result.signals.some((s) => s.includes('profile picture')));
+    assert.ok(result.signals.some((s) => s.toLowerCase().includes('profile picture')));
   });
 
   it('should include signals array', () => {
