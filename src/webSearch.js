@@ -202,7 +202,7 @@ function generateDorks(phoneNumber, options) {
     // --- Carrier & VoIP Check (free) ---
     {
       name: 'FreeCarrierLookup',
-      url: `https://freecarrierlookup.com/`,
+      url: 'https://freecarrierlookup.com/',
       category: 'carrier',
     },
     {
@@ -212,7 +212,7 @@ function generateDorks(phoneNumber, options) {
     },
     {
       name: 'CallerID Test',
-      url: `https://calleridtest.com/`,
+      url: 'https://calleridtest.com/',
       category: 'carrier',
     },
   ];

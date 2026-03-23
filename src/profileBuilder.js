@@ -469,7 +469,7 @@ function buildProfile(phoneInfo, waData, httpProbeData, browserProbeData) {
 
   // --- Calculate profile completeness ---
   let dataPoints = 0;
-  let totalPossible = 12;
+  const totalPossible = 12;
 
   if (profile.names.primary) dataPoints++;
   if (profile.whatsappRegistered !== null) dataPoints++;
