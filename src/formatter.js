@@ -1,6 +1,7 @@
 'use strict';
 
 const { generateReverseImageSearchLinks } = require('./webSearch');
+const { buildProfile, formatProfileReport } = require('./profileBuilder');
 
 /**
  * Format the complete OSINT report for WhatsApp message output.
@@ -214,6 +215,8 @@ function formatReport(phoneInfo, waData, dorks) {
       caller_id: 'Caller ID & Spam Check',
       breach: 'Breach & Paste Sites',
       documents: 'Documents & Files',
+      age_identity: 'Age & Identity (free)',
+      carrier: 'Carrier & VoIP Check',
     };
 
     lines.push('*--- OSINT INVESTIGATION LINKS ---*');
@@ -243,4 +246,20 @@ function formatReport(phoneInfo, waData, dorks) {
   return lines.join('\n');
 }
 
-module.exports = { formatReport };
+/**
+ * Generate a full intelligence profile report.
+ * Combines all data sources into a comprehensive profile with age estimation.
+ *
+ * @param {object} phoneInfo - Parsed phone number metadata
+ * @param {object} [waData] - WhatsApp discovery data (authenticated)
+ * @param {object} [httpProbeData] - HTTP probe results from waDirectProbes.js
+ * @param {object} [browserProbeData] - Browser probe results from waEndpoints.js
+ * @param {object[]} [dorks] - OSINT investigation links
+ * @returns {string} Formatted full profile report
+ */
+function formatFullProfile(phoneInfo, waData, httpProbeData, browserProbeData, dorks) {
+  const profile = buildProfile(phoneInfo, waData, httpProbeData, browserProbeData);
+  return formatProfileReport(profile, dorks);
+}
+
+module.exports = { formatReport, formatFullProfile };

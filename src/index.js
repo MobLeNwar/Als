@@ -5,8 +5,9 @@ const qrcode = require('qrcode-terminal');
 const { parsePhoneNumber, toWhatsAppId } = require('./phoneInfo');
 const { lookupWhatsApp, batchCheckRegistration } = require('./whatsappLookup');
 const { generateDorks } = require('./webSearch');
-const { formatReport } = require('./formatter');
+const { formatReport, formatFullProfile } = require('./formatter');
 const { probeAllEndpoints, getWaMeLink } = require('./waEndpoints');
+const { probeAllHttpEndpoints } = require('./waDirectProbes');
 
 const HELP_TEXT = `*Als OSINT Bot* - WhatsApp Phone Number Intelligence
 
@@ -19,6 +20,7 @@ Send a phone number to get a full OSINT report using WhatsApp's discovery system
 
 *Commands:*
   !lookup <number>   - Full OSINT report (WhatsApp data + investigation links)
+  !profile <number>  - Full intelligence profile with age estimation
   !wa <number>       - WhatsApp-only lookup (profile data only)
   !links <number>    - OSINT investigation links only (no WhatsApp query)
   !batch <n1> <n2>   - Batch check if multiple numbers are on WhatsApp
@@ -34,7 +36,7 @@ All lookups are free. No API keys needed.`;
 function parseCommand(text) {
   const trimmed = text.trim();
 
-  const cmdMatch = trimmed.match(/^!(lookup|wa|links|batch|help)\s*(.*)/i);
+  const cmdMatch = trimmed.match(/^!(lookup|profile|wa|links|batch|help)\s*(.*)/i);
   if (cmdMatch) {
     return {
       command: cmdMatch[1].toLowerCase(),
@@ -127,6 +129,8 @@ async function handleMessage(client, message) {
   try {
     if (command === 'lookup') {
       await fullLookup(client, message, phoneInfo);
+    } else if (command === 'profile') {
+      await fullProfileLookup(client, message, phoneInfo);
     } else if (command === 'wa') {
       await whatsappOnlyLookup(client, message, phoneInfo);
     } else if (command === 'links') {
@@ -189,6 +193,23 @@ async function linksOnlyLookup(message, phoneInfo) {
   const dorkOptions = { countryCode: phoneInfo.country, nationalNumber: phoneInfo.nationalNumber };
   const dorks = generateDorks(phoneInfo.international, dorkOptions);
   const report = formatReport(phoneInfo, waPlaceholder, dorks);
+
+  await message.reply(report);
+}
+
+async function fullProfileLookup(client, message, phoneInfo) {
+  const waId = toWhatsAppId(phoneInfo.number);
+
+  // Run HTTP probes, browser probes, and WhatsApp API lookup in parallel
+  const [waData, httpProbeData, browserProbeData] = await Promise.all([
+    lookupWhatsApp(client, waId),
+    probeAllHttpEndpoints(phoneInfo.number).catch(() => null),
+    probeAllEndpoints(phoneInfo.number).catch(() => null),
+  ]);
+
+  const dorkOptions = { countryCode: phoneInfo.country, nationalNumber: phoneInfo.nationalNumber };
+  const dorks = generateDorks(phoneInfo.international, dorkOptions);
+  const report = formatFullProfile(phoneInfo, waData, httpProbeData, browserProbeData, dorks);
 
   await message.reply(report);
 }

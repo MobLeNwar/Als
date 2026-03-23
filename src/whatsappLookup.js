@@ -41,6 +41,9 @@ async function lookupWhatsApp(client, waId) {
     },
     numberType: null,
     labels: [],
+    lastSeen: null,
+    isOnline: null,
+    deviceCount: null,
   };
 
   try {
@@ -155,6 +158,21 @@ async function lookupWhatsApp(client, waId) {
       }
     } catch (_e) {
       result.labels = [];
+    }
+
+    // Presence / last seen (via whatsapp-web.js internal Store)
+    try {
+      const chat = await client.getChatById(waId);
+      if (chat) {
+        // Some clients expose last seen via chat metadata
+        if (chat.lastMessage) {
+          result.lastSeen = chat.lastMessage.timestamp
+            ? new Date(chat.lastMessage.timestamp * 1000).toISOString()
+            : null;
+        }
+      }
+    } catch (_e) {
+      // Presence data not available
     }
 
   } catch (err) {

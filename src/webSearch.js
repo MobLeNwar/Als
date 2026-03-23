@@ -161,6 +161,60 @@ function generateDorks(phoneNumber, options) {
       url: `https://www.google.com/search?q=%22${encoded}%22+filetype:pdf+OR+filetype:doc+OR+filetype:xlsx+OR+filetype:csv`,
       category: 'documents',
     },
+
+    // --- Age & Identity (all free) ---
+    {
+      name: 'FastPeopleSearch',
+      url: `https://www.fastpeoplesearch.com/phone/${stripped}`,
+      category: 'age_identity',
+    },
+    {
+      name: 'USPhoneBook',
+      url: `https://www.usphonebook.com/${stripped}`,
+      category: 'age_identity',
+    },
+    {
+      name: 'TruePeopleSearch',
+      url: `https://www.truepeoplesearch.com/resultphone?phoneno=${stripped}`,
+      category: 'age_identity',
+    },
+    {
+      name: 'ZabaSearch',
+      url: `https://www.zabasearch.com/phone/${stripped}`,
+      category: 'age_identity',
+    },
+    {
+      name: 'Age/DOB Search',
+      url: `https://www.google.com/search?q=%22${encoded}%22+%22age%22+OR+%22born%22+OR+%22years+old%22+OR+%22DOB%22`,
+      category: 'age_identity',
+    },
+    {
+      name: 'Social Profile Age Search',
+      url: `https://www.google.com/search?q=%22${encoded}%22+%22birthday%22+OR+%22born+in%22+site:facebook.com+OR+site:linkedin.com`,
+      category: 'age_identity',
+    },
+    {
+      name: 'Public Records Search',
+      url: `https://www.google.com/search?q=%22${encodedStripped}%22+%22public+records%22+OR+%22voter+registration%22+OR+%22property+records%22`,
+      category: 'age_identity',
+    },
+
+    // --- Carrier & VoIP Check (free) ---
+    {
+      name: 'FreeCarrierLookup',
+      url: `https://freecarrierlookup.com/`,
+      category: 'carrier',
+    },
+    {
+      name: 'CarrierLookup',
+      url: `https://www.carrierlookup.com/index.php/lookup?phonenumber=${stripped}`,
+      category: 'carrier',
+    },
+    {
+      name: 'CallerID Test',
+      url: `https://calleridtest.com/`,
+      category: 'carrier',
+    },
   ];
 }
 
